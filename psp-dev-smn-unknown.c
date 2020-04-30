@@ -109,8 +109,10 @@ typedef struct PSPDEVUNK
 
     /** 0x50100 register handle. */
     PSPIOMREGIONHANDLE          hSmn0x50100;
-    /** 0x150100 register handle. */
-    PSPIOMREGIONHANDLE          hSmn0x150100;
+    /** 0x50144 register handle. */
+    PSPIOMREGIONHANDLE          hSmn0x50144;
+    /** 0x50df0 register handle. */
+    PSPIOMREGIONHANDLE          hSmn0x50df0;
 } PSPDEVUNK;
 /** Pointer to the device instance data. */
 typedef PSPDEVUNK *PPSPDEVUNK;
@@ -263,12 +265,17 @@ static void pspDevUnkSmnRead0x5a304(SMNADDR offSmn, size_t cbRead, void *pvVal, 
 
 static void pspDevUnkSmnRead0x50100(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
 {
-    *(uint32_t *)pvVal = 0x200; /* SEV app expects this not to be zero on init */
+    *(uint32_t *)pvVal = 0x80000000; /* To have the SEV app execute init, the highest bit must be set */
 }
 
-static void pspDevUnkSmnRead0x150100(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
+static void pspDevUnkSmnRead0x50144(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
 {
-    *(uint32_t *)pvVal = 0x200; /* SEV app expects this not to be zero on init */
+    *(uint32_t *)pvVal = 0x80; /* To have the SEV app execute init, bit 8 must be set */
+}
+
+static void pspDevUnkSmnRead0x50df0(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
+{
+    *(uint32_t *)pvVal = 0x40000; /* To have the SEV app execute init, bit 18 must be set */
 }
 
 static int pspDevUnkInit(PPSPDEV pDev)
@@ -447,8 +454,12 @@ static int pspDevUnkInit(PPSPDEV pDev)
                                     pspDevUnkSmnRead0x50100, NULL, pThis,
                                     NULL /*pszDesc */, &hSmn);
     if (!rc)
-        rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x150100, 4,
-                                    pspDevUnkSmnRead0x150100, NULL, pThis,
+        rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x50144, 4,
+                                    pspDevUnkSmnRead0x50144, NULL, pThis,
+                                    NULL /*pszDesc */, &hSmn);
+    if (!rc)
+        rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x50df0, 4,
+                                    pspDevUnkSmnRead0x50df0, NULL, pThis,
                                     NULL /*pszDesc */, &hSmn);
 
     return rc;

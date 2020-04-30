@@ -106,6 +106,11 @@ typedef struct PSPDEVUNK
     PSPIOMREGIONHANDLE          hSmn0x501ec;
     /** 0x5b304 register handle. */
     PSPIOMREGIONHANDLE          hSmn0x5b304;
+
+    /** 0x50100 register handle. */
+    PSPIOMREGIONHANDLE          hSmn0x50100;
+    /** 0x150100 register handle. */
+    PSPIOMREGIONHANDLE          hSmn0x150100;
 } PSPDEVUNK;
 /** Pointer to the device instance data. */
 typedef PSPDEVUNK *PPSPDEVUNK;
@@ -254,6 +259,16 @@ static void pspDevUnkSmnRead0x5c14c(SMNADDR offSmn, size_t cbRead, void *pvVal, 
 static void pspDevUnkSmnRead0x5a304(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
 {
     *(uint32_t *)pvVal = 0x1; /* Zen2 Ryzen on chip BL waits for it. */
+}
+
+static void pspDevUnkSmnRead0x50100(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
+{
+    *(uint32_t *)pvVal = 0x200; /* SEV app expects this not to be zero on init */
+}
+
+static void pspDevUnkSmnRead0x150100(SMNADDR offSmn, size_t cbRead, void *pvVal, void *pvUser)
+{
+    *(uint32_t *)pvVal = 0x200; /* SEV app expects this not to be zero on init */
 }
 
 static int pspDevUnkInit(PPSPDEV pDev)
@@ -426,6 +441,14 @@ static int pspDevUnkInit(PPSPDEV pDev)
     if (!rc)
         rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x5a304, 4,
                                     pspDevUnkSmnRead0x5a304, NULL, pThis,
+                                    NULL /*pszDesc */, &hSmn);
+    if (!rc)
+        rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x50100, 4,
+                                    pspDevUnkSmnRead0x50100, NULL, pThis,
+                                    NULL /*pszDesc */, &hSmn);
+    if (!rc)
+        rc = PSPEmuIoMgrSmnRegister(pDev->hIoMgr, 0x150100, 4,
+                                    pspDevUnkSmnRead0x150100, NULL, pThis,
                                     NULL /*pszDesc */, &hSmn);
 
     return rc;
